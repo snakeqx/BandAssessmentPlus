@@ -82,10 +82,8 @@ class DicomHandler:
         self.Image_rescale = self.Image_HU + (0 - min_hu_image)  # get rid of minus number
         max_image_rescale = self.Image_rescale.max()
         self.Image_rescale = self.Image_rescale * 255 / max_image_rescale  # rescale the image to fit 0~255
-        # make a copy of HU image for calculate center of the circle
-        self.Image_HU_Copy = self.Image_HU.copy()
         # try to calculate radius and center col / row
-        self.calc_circle(self.Image_HU_Copy)
+        self.calc_circle(self.Image_HU.copy())
         # define circular integration result
         self.Image_Integration_Result = np.zeros(self.Radius)
         self.Image_Median_Filter_Result = np.zeros(self.Radius)
