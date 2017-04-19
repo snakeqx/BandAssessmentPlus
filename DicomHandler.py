@@ -91,7 +91,6 @@ class DicomHandler:
         self.Image_Median_Filter_Result = np.zeros(self.Radius)
         # main calculation
         self.integration()
-        logging.debug(r"Circular integration done.")
         self.isShowImgReady = True
         ###############################################
 
@@ -164,7 +163,6 @@ class DicomHandler:
         else:
             logging.warning(r"Calculated center is abnormal, use 50 as radius!")
             self.Radius = 50
-        logging.debug(r"Center of circle has been found.")
 
     def bresenham(self, radius):
         x = 0
