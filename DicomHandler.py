@@ -35,6 +35,8 @@ class DicomHandler:
         self.Dicom_File_Name = filename
         # open the dicom file
         logging.debug(r"Opening file:" + filename)
+
+        # Initial Dicom data
         try:
             self.Dicom_File = dicom.read_file(filename)
             self.Dicom_Station_Name = self.Dicom_File[0x0018, 0x1000].value
@@ -57,17 +59,19 @@ class DicomHandler:
             self.Dicom_Total_Collimation = self.Dicom_File[0x0018, 0x9307].value
             self.Dicom_Slice_Thickness = self.Dicom_File[0x0018, 0x0050].value
             self.Dicom_Instance = self.Dicom_File[0x0020, 0x0013].value
-            logging.debug(r"Image Mode: " +
-                          str(self.Dicom_KVP) + r"KV_" +
-                          str(self.Dicom_Current) + r"mA_" +
-                          str(self.Dicom_Kernel) + r"_" +
-                          str(self.Dicom_Total_Collimation) + r"I" +
-                          str(self.Dicom_Slice_Thickness) + r"." +
-                          str(self.Dicom_Instance))
+            self.Dicom_Mode = r"{0}KV_{1}mA_{2}_{3}I{4}.{5}".format(str(self.Dicom_KVP),
+                                                                    str(self.Dicom_Current),
+                                                                    str(self.Dicom_Kernel),
+                                                                    str(self.Dicom_Total_Collimation),
+                                                                    str(self.Dicom_Slice_Thickness),
+                                                                    str(self.Dicom_Instance))
+            logging.debug(r"Image Mode: " + self.Dicom_Mode)
             self.Dicom_Pix_Space = self.Dicom_File[0x0028, 0x0030].value
         except Exception as e:
             logging.error(e)
             return
+
+        # Initial Image data
         # Do the initial calculation
         self.Image_HU = self.Image_Data_Raw * self.Dicom_Slop + self.Dicom_Intercept  # Convert to HU unit
         self.Dicom_Window_Upper = center + width / 2
@@ -90,7 +94,6 @@ class DicomHandler:
         # main calculation
         self.integration()
         self.isShowImgReady = True
-        ###############################################
 
     def calc_circle(self, dicom_pixel_data):
         # remove the pixel if the pixel is low
@@ -111,7 +114,7 @@ class DicomHandler:
         right_distance = 0
         up_distance = 0
         low_distance = 0
-        ##############################
+
         # start to calculate center col
         for left_distance in range(1, im.size[1]):
             if filtered_image[self.Center_Row, left_distance] != 0:
@@ -127,7 +130,7 @@ class DicomHandler:
             logging.warning(r"It seems abnormal when calculate Center Col, use image center now!")
             self.Center_Col = self.Dicom_Cols // 2
             abnormal = True
-        ###############################
+
         # start to calculate center row
         for up_distance in range(1, im.size[0]):
             if filtered_image[up_distance, self.Center_Col] != 0:
@@ -142,7 +145,7 @@ class DicomHandler:
             logging.warning(r"It seems abnormal when calculate Center row, use image center now!")
             self.Center_Row = self.Dicom_Rows // 2
             abnormal = True
-        ###################################
+
         # set different radius according to normal/abnormal situation
         if abnormal is False:
             self.Radius = (im.size[0] - left_distance - right_distance) // 2
@@ -201,6 +204,7 @@ class DicomHandler:
             self.Image_Integration_Result[:5])
         self.Image_Median_Filter_Result[1] = np.median(self.Image_Integration_Result[:3]) * factor - np.median(
             self.Image_Integration_Result[:5])
+
         # the last and 2nd last data = factor * md3() - md5()
         self.Image_Median_Filter_Result[-1] = np.median(self.Image_Integration_Result[-3:]) * factor - np.median(
             self.Image_Integration_Result[-5:])
@@ -212,21 +216,8 @@ class DicomHandler:
     def show_image(self):
         if self.isShowImgReady:
             # set up the output file name
-            image__filename = r"{0}_{1}Kv_{2}mA_{3}_{4}I{5}_{6}.jpeg".format(str(self.Dicom_Station_Name),
-                                                                             str(self.Dicom_KVP),
-                                                                             str(self.Dicom_Current),
-                                                                             str(self.Dicom_Kernel),
-                                                                             str(self.Dicom_Total_Collimation),
-                                                                             str(self.Dicom_Slice_Thickness),
-                                                                             str(self.Dicom_Instance))
-            image__filename__fig = r"{0}_{1}Kv_{2}mA_{3}_{4}I{5}_{6}_fig.jpeg".format(
-                str(self.Dicom_Station_Name),
-                str(self.Dicom_KVP),
-                str(self.Dicom_Current),
-                str(self.Dicom_Kernel),
-                str(self.Dicom_Total_Collimation),
-                str(self.Dicom_Slice_Thickness),
-                str(self.Dicom_Instance))
+            image__filename = self.Dicom_Mode + ".jpeg"
+            image__filename__fig = self.Dicom_Mode + "_fig.jpeg"
             im = Image.fromarray(self.Image_rescale).convert("L")
             # prepare to drawing the image
             draw_surface = ImageDraw.Draw(im)
