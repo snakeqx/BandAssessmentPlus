@@ -1,5 +1,6 @@
 import logging
 import sqlite3
+import os
 
 
 class DatabaseHandler:
@@ -10,7 +11,8 @@ class DatabaseHandler:
     """
     Database_Name = "BandAssessment.sqlite3.db"
 
-    def __init__(self, name, kvp, current, kernel, total_col, slice_thick, instance, integration, comment=None):
+    def __init__(self, name, kvp, current, kernel, total_col, slice_thick,
+                 instance, integration, date, comment=None):
         self.Dicom_Station_Name = name
         self.Dicom_KVP = kvp
         self.Dicom_Current = current
@@ -19,16 +21,18 @@ class DatabaseHandler:
         self.Dicom_Slice_Thickness = slice_thick
         self.Dicom_Instance = instance
         self.Integration_Result = integration
+        self.Dicom_Date = date
         self.Comment = comment
-        logging.debug(r"Run into SQL3Handler")
+        if not os.path.isfile(self.Database_Name):
+            self.create_database()
+
+    def create_database(self):
         try:
             con = sqlite3.connect(self.Database_Name)
         except sqlite3.Error as e:
             logging.debug(str(e))
-            return
-        logging.debug(r"Database connected")
         sql_cursor = con.cursor()
-        sql_string = '''create table if not exist BandAssessment(
+        sql_string = '''create table BandAssessment(
                            uid INTEGER PRIMARY KEY AUTOINCREMENT,
                            serial_number INTEGER NOT NULL,
                            tube_voltage REAL NOT NULL,
@@ -38,13 +42,13 @@ class DatabaseHandler:
                            slice_thickness REAL NOT NULL,
                            instance INTEGER NOT NULL,
                            integration_result TEXT NOT NULL,
+                           date TEXT NOT NULL,
                            comment TEXT);'''
         try:
             sql_cursor.execute(sql_string)
+            logging.info(r"Database and Table created")
         except sqlite3.Error as e:
             logging.debug(str(e))
-            return
-        logging.debug(r"create table done.")
         con.close()
 
     def insert_data(self):
@@ -57,12 +61,12 @@ class DatabaseHandler:
         int_result_string = ';'.join([str(x) for x in self.Integration_Result])
         # set up for store in sql
         sql_cursor = con.cursor()
-        sql_string = r"insert into BandAssessment values (?,?,?,?,?,?,?,?,?,?);"
+        sql_string = r"insert into BandAssessment values (?,?,?,?,?,?,?,?,?,?,?);"
         try:
             sql_cursor.execute(sql_string,
                                (None, self.Dicom_Station_Name, self.Dicom_KVP, self.Dicom_Current, self.Dicom_Kernel,
                                 self.Dicom_Total_Collimation, self.Dicom_Slice_Thickness, self.Dicom_Instance,
-                                int_result_string, self.Comment))
+                                int_result_string, self.Dicom_Date, self.Comment))
         except sqlite3.Error as e:
             logging.error(str(e))
             con.close()
@@ -87,3 +91,4 @@ if __name__ == '__main__':
     formatter = logging.Formatter('%(levelname)-8s %(message)s')
     console.setFormatter(formatter)
     logging.getLogger('').addHandler(console)
+

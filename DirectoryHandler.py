@@ -16,7 +16,6 @@ class DirectoryHandler:
     def __init__(self, input_directory):
         """
         :param input_directory: 
-        :param target_to_find: target database file name
         """
         if input_directory is not None:
             if os.path.isdir(input_directory):
@@ -44,7 +43,7 @@ class DirectoryHandler:
                     logging.info(self.Directory_Iterate*self.Tree_indicator + r"find a file: " + str(dl))
                 except Exception as e:
                     # if it is not a dicom file, skip saving to Dicom_File_Path
-                    logging.info(self.Directory_Iterate*self.Tree_indicator + r"find a file: " + str(dl) + str(e))
+                    logging.warning(self.Directory_Iterate*self.Tree_indicator + r"find a file: " + str(dl) + str(e))
             else:
                 logging.info(self.Directory_Iterate*self.Tree_indicator +
                              r"find a folder: " + str(dl))

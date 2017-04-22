@@ -1,5 +1,3 @@
-import sys
-import os
 import dicom
 import numpy as np
 from PIL import Image
@@ -10,6 +8,7 @@ import logging
 
 
 class DicomHandler:
+
     """
     This is the main class to deal with single dicom image.
     And it will calculate the circular integration of the image.
@@ -67,6 +66,7 @@ class DicomHandler:
                                                                     str(self.Dicom_Instance))
             logging.debug(r"Image Mode: " + self.Dicom_Mode)
             self.Dicom_Pix_Space = self.Dicom_File[0x0028, 0x0030].value
+            self.Dicom_Date = self.Dicom_File[0x0008, 0x002a].value
         except Exception as e:
             logging.error(e)
             return
