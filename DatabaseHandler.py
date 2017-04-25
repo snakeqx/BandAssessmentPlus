@@ -4,7 +4,7 @@ import os
 from DicomHandler import DicomHandler
 
 
-class DatabaseHandler2:
+class DatabaseHandler:
     """
     Create a Sqlite3 handler to store the data.
     for the integration result, it will be converted to string and then store into database.
