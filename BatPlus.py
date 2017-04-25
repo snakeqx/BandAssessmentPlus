@@ -35,4 +35,5 @@ if __name__ == '__main__':
                             a.Dicom_Slice_Thickness,
                             a.Dicom_Instance,
                             a.Image_Integration_Result,
-                            a.Dicom_Date).insert_data()
+                            a.Dicom_Date,
+                            a.Dicom_Store).insert_data()

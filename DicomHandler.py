@@ -71,6 +71,16 @@ class DicomHandler:
             logging.error(e)
             return
 
+        # initial binary file
+        try:
+            file = open(filename, 'rb')
+            self.Dicom_Store = file.read()
+        except Exception as e:
+            logging.error(e)
+            return
+        finally:
+            file.close()
+
         # Initial Image data
         # Do the initial calculation
         self.Image_HU = self.Image_Data_Raw * self.Dicom_Slop + self.Dicom_Intercept  # Convert to HU unit

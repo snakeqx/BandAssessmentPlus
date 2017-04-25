@@ -12,7 +12,7 @@ class DatabaseHandler:
     Database_Name = "BandAssessment.sqlite3.db"
 
     def __init__(self, name, kvp, current, kernel, total_col, slice_thick,
-                 instance, integration, date, comment=None):
+                 instance, integration, date, dicom_store, comment=None):
         self.Dicom_Station_Name = name
         self.Dicom_KVP = kvp
         self.Dicom_Current = current
@@ -22,6 +22,7 @@ class DatabaseHandler:
         self.Dicom_Instance = instance
         self.Integration_Result = integration
         self.Dicom_Date = date
+        self.Dicom_Store = dicom_store
         self.Comment = comment
         if not os.path.isfile(self.Database_Name):
             self.create_database()
@@ -43,6 +44,7 @@ class DatabaseHandler:
                            instance INTEGER NOT NULL,
                            integration_result TEXT NOT NULL,
                            date TEXT NOT NULL,
+                           dicom_file BLOB NOT NULL,
                            comment TEXT);'''
         try:
             sql_cursor.execute(sql_string)
@@ -61,12 +63,12 @@ class DatabaseHandler:
         int_result_string = ';'.join([str(x) for x in self.Integration_Result])
         # set up for store in sql
         sql_cursor = con.cursor()
-        sql_string = r"insert into BandAssessment values (?,?,?,?,?,?,?,?,?,?,?);"
+        sql_string = r"insert into BandAssessment values (?,?,?,?,?,?,?,?,?,?,?,?);"
         try:
             sql_cursor.execute(sql_string,
                                (None, self.Dicom_Station_Name, self.Dicom_KVP, self.Dicom_Current, self.Dicom_Kernel,
                                 self.Dicom_Total_Collimation, self.Dicom_Slice_Thickness, self.Dicom_Instance,
-                                int_result_string, self.Dicom_Date, self.Comment))
+                                int_result_string, self.Dicom_Date, self.Dicom_Store, self.Comment))
         except sqlite3.Error as e:
             logging.error(str(e))
             con.close()
