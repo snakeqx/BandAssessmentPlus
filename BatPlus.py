@@ -25,13 +25,14 @@ if __name__ == '__main__':
     input_directory = DirectoryHandler(r"./test/")
     for x in DirectoryHandler.Dicom_File_Path:
         a = DicomHandler(x)
-        a.show_image()
-        DatabaseHandler(a.Dicom_Station_Name,
-                        a.Dicom_KVP,
-                        a.Dicom_Current,
-                        a.Dicom_Kernel,
-                        a.Dicom_Total_Collimation,
-                        a.Dicom_Slice_Thickness,
-                        a.Dicom_Instance,
-                        a.Image_Integration_Result,
-                        a.Dicom_Date).insert_data()
+        if a.isShowImgReady:
+            a.show_image()
+            DatabaseHandler(a.Dicom_Station_Name,
+                            a.Dicom_KVP,
+                            a.Dicom_Current,
+                            a.Dicom_Kernel,
+                            a.Dicom_Total_Collimation,
+                            a.Dicom_Slice_Thickness,
+                            a.Dicom_Instance,
+                            a.Image_Integration_Result,
+                            a.Dicom_Date).insert_data()

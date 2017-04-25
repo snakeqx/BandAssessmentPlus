@@ -158,7 +158,7 @@ class DicomHandler:
                 logging.debug(str(self.Radius) + r"pix" + r", which is: " +
                               str(self.Radius * self.Dicom_Pix_Space[0] * 2) + r"cm <=========Radius Readjusted")
             else:
-                self.Radius = 220
+                self.Radius = 233
                 logging.debug(str(self.Radius) + r"pix" + r", which is: " +
                               str(self.Radius * self.Dicom_Pix_Space[0] * 2) + r"cm <=========Radius Readjusted")
         else:
