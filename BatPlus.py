@@ -26,14 +26,6 @@ if __name__ == '__main__':
     for x in DirectoryHandler.Dicom_File_Path:
         a = DicomHandler(x)
         if a.isShowImgReady:
-            a.show_image()
-            DatabaseHandler(a.Dicom_Station_Name,
-                            a.Dicom_KVP,
-                            a.Dicom_Current,
-                            a.Dicom_Kernel,
-                            a.Dicom_Total_Collimation,
-                            a.Dicom_Slice_Thickness,
-                            a.Dicom_Instance,
-                            a.Image_Integration_Result,
-                            a.Dicom_Date,
-                            a.Dicom_Store).insert_data()
+            DatabaseHandler(a).insert_data()
+            # a.show_image()
+

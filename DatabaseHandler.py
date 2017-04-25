@@ -1,9 +1,10 @@
 import logging
 import sqlite3
 import os
+from DicomHandler import DicomHandler
 
 
-class DatabaseHandler:
+class DatabaseHandler2:
     """
     Create a Sqlite3 handler to store the data.
     for the integration result, it will be converted to string and then store into database.
@@ -11,19 +12,9 @@ class DatabaseHandler:
     """
     Database_Name = "BandAssessment.sqlite3.db"
 
-    def __init__(self, name, kvp, current, kernel, total_col, slice_thick,
-                 instance, integration, date, dicom_store, comment=None):
-        self.Dicom_Station_Name = name
-        self.Dicom_KVP = kvp
-        self.Dicom_Current = current
-        self.Dicom_Kernel = kernel
-        self.Dicom_Total_Collimation = total_col
-        self.Dicom_Slice_Thickness = slice_thick
-        self.Dicom_Instance = instance
-        self.Integration_Result = integration
-        self.Dicom_Date = date
-        self.Dicom_Store = dicom_store
-        self.Comment = comment
+    def __init__(self, dicom: DicomHandler):
+        self.Comment = None
+        self.Dicom = dicom
         if not os.path.isfile(self.Database_Name):
             self.create_database()
 
@@ -60,15 +51,18 @@ class DatabaseHandler:
             logging.debug(str(e))
             return
         # convert numpy into string to store in sqlite3
-        int_result_string = ';'.join([str(x) for x in self.Integration_Result])
+        int_result_string = ';'.join([str(x) for x in self.Dicom.Image_Integration_Result])
         # set up for store in sql
         sql_cursor = con.cursor()
         sql_string = r"insert into BandAssessment values (?,?,?,?,?,?,?,?,?,?,?,?);"
         try:
             sql_cursor.execute(sql_string,
-                               (None, self.Dicom_Station_Name, self.Dicom_KVP, self.Dicom_Current, self.Dicom_Kernel,
-                                self.Dicom_Total_Collimation, self.Dicom_Slice_Thickness, self.Dicom_Instance,
-                                int_result_string, self.Dicom_Date, self.Dicom_Store, self.Comment))
+                               (None,
+                                self.Dicom.Dicom_Station_Name, self.Dicom.Dicom_KVP,
+                                self.Dicom.Dicom_Current, self.Dicom.Dicom_Kernel,
+                                self.Dicom.Dicom_Total_Collimation, self.Dicom.Dicom_Slice_Thickness,
+                                self.Dicom.Dicom_Instance, int_result_string,
+                                self.Dicom.Dicom_Date, self.Dicom.Dicom_Store, self.Comment))
         except sqlite3.Error as e:
             logging.error(str(e))
             con.close()
