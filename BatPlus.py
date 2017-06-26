@@ -1,6 +1,7 @@
 import os
 import logging
 from DirectoryHandler import DirectoryHandler
+from ImageHandler import ImageHandler
 from DicomHandler import DicomHandler
 from DatabaseHandler import DatabaseHandler
 
@@ -22,10 +23,7 @@ def main():
 
 
 if __name__ == '__main__':
-    input_directory = DirectoryHandler(r"./test/")
+    input_directory = DirectoryHandler(r"/Users/qianxin/Downloads")
     for x in DirectoryHandler.Dicom_File_Path:
-        a = DicomHandler(x)
-        if a.isShowImgReady:
-            DatabaseHandler(a).insert_data()
-            # a.show_image()
+        a = ImageHandler(x)
 

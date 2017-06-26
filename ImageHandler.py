@@ -35,8 +35,10 @@ class ImageHandler(DicomHandler):
             return
         self.isImageComplete = True
         self.Image = self.rescale_image(self.Image_HU, (self.WindowWidth, self.WindowCenter))
+        logging.info(r"Image initialed OK.")
 
-    def rescale_image(self, raw_data, window: tuple):
+    @staticmethod
+    def rescale_image(raw_data, window: tuple):
         """
         rescale the image to set the data in range (0~255)
         :param raw_data: a np array as raw image data, make sure to pass a copy!

@@ -41,6 +41,7 @@ class DirectoryHandler:
                     self.Total_Dicom_Quantity += 1
                     logging.info(str(full_dl))
                 except Exception as e:
+                    logging.info(str(full_dl))
                     logging.error(str(e))
             else:
                 self.list_files(full_dl)
