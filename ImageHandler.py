@@ -32,10 +32,10 @@ class ImageHandler(DicomHandler):
             self.Image_HU = self.RawData * self.Slop + self.Intercept
             self.Image = self.Image_HU.copy()
             # calculate first time that can show image according pre-set windowing
-            self.rescale_image(self.Window)
+            self.rescale_image((50, 100))
             # center is always in format (row, col)
             # Radius is always in format (radius in pixel, radius in cm)
-            self.Center, self.Radius = self.calc_circle(self.Image_HU.copy())
+            self.Center, self.Radius = self.calc_circle()
             # define circular integration result
             self.Image_Integration_Result = np.zeros(self.Radius[0])
             self.Image_Median_Filter_Result = np.zeros(self.Radius[0])
@@ -52,7 +52,6 @@ class ImageHandler(DicomHandler):
     def rescale_image(self, window: tuple):
         """
         rescale the image to set the data in range (0~255)
-        :param raw_data: a np array as raw image data, make sure to pass a copy!
         :param window: a tuple pass in as (window width, window center)
         :return: return a np array as rescaled image
         """
@@ -66,23 +65,24 @@ class ImageHandler(DicomHandler):
         raw_data[lower_filter] = window_lower  # set lower value
         # rescale the data to 0~255
         min_hu_image = raw_data.min()
-        if min_hu_image < 0:
-            max_hu_image = raw_data.max() + abs(min_hu_image)
-            image_rescale = raw_data + (0 - min_hu_image)  # get rid of minus number
-        else:
-            max_hu_image = raw_data.max()
-            image_rescale = raw_data
+        image_rescale = raw_data + (0 - min_hu_image)  # get rid of minus number
+        max_hu_image = image_rescale.max()
+        # if min_hu_image < 0:
+        #     max_hu_image = raw_data.max() + abs(min_hu_image)
+        #     image_rescale = raw_data + (0 - min_hu_image)  # get rid of minus number
+        # else:
+        #     max_hu_image = raw_data.max()
+        #     image_rescale = raw_data
         image_rescale = image_rescale * 255 / max_hu_image  # rescale the image to fit 0~255
         self.Image = image_rescale
 
-    def calc_circle(self, raw_data):
+    def calc_circle(self):
         """
         Calculate the image center and radius
         the method is simple
         from up/down/left/right side to go into center
         the 1st number is > mean value, it's the edge
         calculate the distance from th edge to center
-        :param raw_data: the image data will be calculated be sure to pass a copy!
         :return: return 2 tuples which are image center and radius 
         (center row, center col),(radius in pixel, radius in cm)
         """
@@ -252,4 +252,4 @@ if __name__ == '__main__':
                         datefmt='%a, %d %b %Y %H:%M:%S')
 
     img = ImageHandler('/Users/qianxin/Downloads/a')
-    print(img.show_image())
+    img.save_image()
