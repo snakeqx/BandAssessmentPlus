@@ -14,6 +14,7 @@ class DicomHandler:
             # system related
             self.SerialNumber = self.Data[0x0018, 0x1000].value
             self.Modality = self.Data[0x0008, 0x1090].value
+            self.SoftwareVersion = self.Data[0x0018, 0x1020].value
 
             # Image related
             self.Slop = self.Data[0x0028, 0x1053].value

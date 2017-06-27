@@ -7,10 +7,19 @@ from DicomHandler import DicomHandler
 
 
 class ImageHandler(DicomHandler):
+    """
+    ImageHandler class is a heritage of DicomHandler class.
+    The ImageHandler class can provide more functions based on the DicomHandler class.
+    """
     def __init__(self, filename):
+        """
+        Initialization function
+        :param filename: input dicom file name including path
+        """
         self.isImageComplete = False
         self.RescaleType = {'linear', 'logarithm'}
         try:
+            # call super to init DicomHandler class first
             super(self.__class__, self).__init__(filename)
         except Exception as e:
             logging.error(str(e))
@@ -22,9 +31,8 @@ class ImageHandler(DicomHandler):
             # Convert to HU unit
             self.Image_HU = self.RawData * self.Slop + self.Intercept
             # center is always in format (row, col)
+            # Radius is always in format (radius in pixel, radius in cm)
             self.Center, self.Radius = self.calc_circle(self.Image_HU.copy())
-            # Initial Image data
-            # Do the initial calculation
             # define circular integration result
             self.Image_Integration_Result = np.zeros(self.Radius[0])
             self.Image_Median_Filter_Result = np.zeros(self.Radius[0])
@@ -33,7 +41,9 @@ class ImageHandler(DicomHandler):
         except Exception as e:
             logging.error(str(e))
             return
+        # set the flag to indicate initializing done
         self.isImageComplete = True
+        # calculate first time that can show image according pre-set windowing
         self.Image = self.rescale_image(self.Image_HU, self.Window)
         logging.info(r"Image initialed OK.")
 
@@ -70,11 +80,12 @@ class ImageHandler(DicomHandler):
         from up/down/left/right side to go into center
         the 1st number is > mean value, it's the edge
         calculate the distance from th edge to center
-        :param raw_data: the image data will be calculated besure to pass a copy!
+        :param raw_data: the image data will be calculated be sure to pass a copy!
         :return: return 2 tuples which are image center and radius 
         (center row, center col),(radius in pixel, radius in cm)
         """
         # set up some local variables
+        default_window = (100, 0)
         is_abnormal = False
         center_col = self.Size[0] // 2
         center_row = self.Size[1] // 2
@@ -84,9 +95,12 @@ class ImageHandler(DicomHandler):
         low_distance = 0
         max_allowed_deviation = 20
         # Using PIL to find edge and convert back to np array
-        raw_data = self.rescale_image(raw_data.copy(), (100, 0))
-        im = Image.fromarray(raw_data).convert("L").filter(ImageFilter.FIND_EDGES)
-        filtered_image = np.array(im)
+        # This will make calculation more accuracy
+        filtered_image = np.array(
+            Image.fromarray(self.rescale_image(raw_data, default_window))
+            .convert("L")
+            .filter(ImageFilter.FIND_EDGES)
+        )
 
         # start to calculate center col
         for left_distance in range(1, self.Size[1]):
@@ -128,11 +142,11 @@ class ImageHandler(DicomHandler):
             if diameter_in_cm < 250:
                 radius = 233
                 logging.debug(str(radius) + r"pix" + r", which is: " +
-                              str(radius * self.PixSpace[0] * 2) + r"cm <=========Radius Readjusted")
+                              str(radius * self.PixSpace[0] * 2) + r"cm <==Radius Readjusted")
             else:
                 radius = 220
                 logging.debug(str(radius) + r"pix" + r", which is: " +
-                              str(radius * self.PixSpace[0] * 2) + r"cm <=========Radius Readjusted")
+                              str(radius * self.PixSpace[0] * 2) + r"cm <==Radius Readjusted")
         else:
             logging.warning(r"Calculated center is abnormal, use 50 as radius!")
             radius = 50
@@ -141,26 +155,22 @@ class ImageHandler(DicomHandler):
         return (center_row, center_col), (radius, diameter_in_cm)
 
     def bresenham(self, radius):
+        """
+        Draw circle by bresenham method. And calculate the sum.
+        :param radius: set the radius of the calculated circle
+        """
         x = 0
         y = radius
         d = 3 - 2 * radius
         while x < y:
-            self.Image_Integration_Result[radius] = self.Image_Integration_Result[radius] + self.Image_HU[
-                self.Center[0] - y, self.Center[1] + x]
-            self.Image_Integration_Result[radius] = self.Image_Integration_Result[radius] + self.Image_HU[
-                self.Center[0] + y, self.Center[1] + x]
-            self.Image_Integration_Result[radius] = self.Image_Integration_Result[radius] + self.Image_HU[
-                self.Center[0] - y, self.Center[1] - x]
-            self.Image_Integration_Result[radius] = self.Image_Integration_Result[radius] + self.Image_HU[
-                self.Center[0] + y, self.Center[1] - x]
-            self.Image_Integration_Result[radius] = self.Image_Integration_Result[radius] + self.Image_HU[
-                self.Center[0] - x, self.Center[1] + y]
-            self.Image_Integration_Result[radius] = self.Image_Integration_Result[radius] + self.Image_HU[
-                self.Center[0] - x, self.Center[1] - y]
-            self.Image_Integration_Result[radius] = self.Image_Integration_Result[radius] + self.Image_HU[
-                self.Center[0] + x, self.Center[1] + y]
-            self.Image_Integration_Result[radius] = self.Image_Integration_Result[radius] + self.Image_HU[
-                self.Center[0] + x, self.Center[1] - y]
+            self.Image_Integration_Result[radius] += self.Image_HU[self.Center[0] - y, self.Center[1] + x]
+            self.Image_Integration_Result[radius] += self.Image_HU[self.Center[0] + y, self.Center[1] + x]
+            self.Image_Integration_Result[radius] += self.Image_HU[self.Center[0] - y, self.Center[1] - x]
+            self.Image_Integration_Result[radius] += self.Image_HU[self.Center[0] + y, self.Center[1] - x]
+            self.Image_Integration_Result[radius] += self.Image_HU[self.Center[0] - x, self.Center[1] + y]
+            self.Image_Integration_Result[radius] += self.Image_HU[self.Center[0] - x, self.Center[1] - y]
+            self.Image_Integration_Result[radius] += self.Image_HU[self.Center[0] + x, self.Center[1] + y]
+            self.Image_Integration_Result[radius] += self.Image_HU[self.Center[0] + x, self.Center[1] - y]
             if d < 0:
                 d = d + 4 * x + 6
             else:
@@ -169,22 +179,29 @@ class ImageHandler(DicomHandler):
             x += 1
 
     def integration(self):
+        # calculate circular integration for each radius
         for index in range(1, len(self.Image_Integration_Result)):
             self.bresenham(index)
             self.Image_Integration_Result[index] /= (index * 2 * 3.14)
         # calculate data by using Median
-        factor = 3
+        factor = 5
         # the 1st and 2nd data = factor * md3() - md5()
-        self.Image_Median_Filter_Result[0] = np.median(self.Image_Integration_Result[:3]) * factor - np.median(
-            self.Image_Integration_Result[:5])
-        self.Image_Median_Filter_Result[1] = np.median(self.Image_Integration_Result[:3]) * factor - np.median(
-            self.Image_Integration_Result[:5])
+        self.Image_Median_Filter_Result[0] = \
+            np.median(self.Image_Integration_Result[:3]) * factor - \
+            np.median(self.Image_Integration_Result[:5])
+        self.Image_Median_Filter_Result[1] = \
+            np.median(self.Image_Integration_Result[:3]) * factor - \
+            np.median(self.Image_Integration_Result[:5])
 
         # the last and 2nd last data = factor * md3() - md5()
-        self.Image_Median_Filter_Result[-1] = np.median(self.Image_Integration_Result[-3:]) * factor - np.median(
-            self.Image_Integration_Result[-5:])
-        self.Image_Median_Filter_Result[-2] = np.median(self.Image_Integration_Result[-3:]) * factor - np.median(
-            self.Image_Integration_Result[-5:])
+        self.Image_Median_Filter_Result[-1] = \
+            np.median(self.Image_Integration_Result[-3:]) * factor - \
+            np.median(self.Image_Integration_Result[-5:])
+        self.Image_Median_Filter_Result[-2] = \
+            np.median(self.Image_Integration_Result[-3:]) * factor - \
+            np.median(self.Image_Integration_Result[-5:])
+
+        # for the rest of the data, do the median filter with width=5
         for index in range(3, len(self.Image_Integration_Result) - 2):
             self.Image_Median_Filter_Result[index] = np.median(self.Image_Integration_Result[index - 3:index + 3])
 
@@ -192,7 +209,6 @@ class ImageHandler(DicomHandler):
         if not self.isImageComplete:
             logging.warning(r"Image initialed incomplete. Procedure quited.")
             return
-
         # set up the output file name
         image__filename = self.ScanMode + ".jpeg"
         image__filename__fig = self.ScanMode + "_fig.jpeg"
