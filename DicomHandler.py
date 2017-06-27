@@ -18,8 +18,8 @@ class DicomHandler:
             # Image related
             self.Slop = self.Data[0x0028, 0x1053].value
             self.Intercept = self.Data[0x0028, 0x1052].value
-            self.Rows = self.Data[0x0028, 0x0010].value
-            self.Cols = self.Data[0x0028, 0x0011].value
+            self.Size = (self.Data[0x0028, 0x0010].value,   # row
+                         self.Data[0x0028, 0x0011].value)   # col
             self.PixSpace = self.Data[0x0028, 0x0030].value
             self.Instance = self.Data[0x0020, 0x0013].value
             self.PixSpace = self.Data[0x0028, 0x0030].value
@@ -29,8 +29,8 @@ class DicomHandler:
                 return
 
             # Recon related
-            self.WindowCenter = self.Data[0x0028, 0x1050].value
-            self.WindowWidth = self.Data[0x0028, 0x1051].value
+            self.Window = (self.Data[0x0028, 0x1051].value,    # window width
+                           self.Data[0x0028, 0x1050].value)    # window center
             self.FOV = self.Data[0x0018, 0x1100].value
             self.RawData = np.array(self.Data.pixel_array)
 

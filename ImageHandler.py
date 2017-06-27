@@ -34,7 +34,7 @@ class ImageHandler(DicomHandler):
             logging.error(str(e))
             return
         self.isImageComplete = True
-        self.Image = self.rescale_image(self.Image_HU, (self.WindowWidth, self.WindowCenter))
+        self.Image = self.rescale_image(self.Image_HU, self.Window)
         logging.info(r"Image initialed OK.")
 
     @staticmethod
@@ -76,9 +76,8 @@ class ImageHandler(DicomHandler):
         """
         # set up some local variables
         is_abnormal = False
-        img_size = (self.Rows, self.Cols)
-        center_col = img_size[0] // 2
-        center_row = img_size[1] // 2
+        center_col = self.Size[0] // 2
+        center_row = self.Size[1] // 2
         left_distance = 0
         right_distance = 0
         up_distance = 0
@@ -90,38 +89,38 @@ class ImageHandler(DicomHandler):
         filtered_image = np.array(im)
 
         # start to calculate center col
-        for left_distance in range(1, img_size[1]):
+        for left_distance in range(1, self.Size[1]):
             if filtered_image[center_row, left_distance] != 0:
                 break
-        for right_distance in range(1, img_size[1]):
-            if filtered_image[center_row, img_size[1] - right_distance] != 0:
+        for right_distance in range(1, self.Size[1]):
+            if filtered_image[center_row, self.Size[1] - right_distance] != 0:
                 break
         center_col += (left_distance - right_distance) // 2
         logging.debug(r"Center Col calculated as: " + str(center_col))
         # if the calculated center col deviated too much
-        if (img_size[0] // 2 + max_allowed_deviation) < center_col < (img_size[0] // 2 - max_allowed_deviation):
+        if (self.Size[0] // 2 + max_allowed_deviation) < center_col < (self.Size[0] // 2 - max_allowed_deviation):
             logging.warning(r"It seems abnormal when calculate Center Col, use image center now!")
-            center_col = img_size[0] // 2
+            center_col = self.Size[0] // 2
             is_abnormal = True
 
         # start to calculate center row
-        for up_distance in range(1, img_size[0]):
+        for up_distance in range(1, self.Size[0]):
             if filtered_image[up_distance, center_col] != 0:
                 break
-        for low_distance in range(1, img_size[0]):
-            if filtered_image[img_size[0] - low_distance, center_col] != 0:
+        for low_distance in range(1, self.Size[0]):
+            if filtered_image[self.Size[0] - low_distance, center_col] != 0:
                 break
         center_row += (up_distance - low_distance) // 2
         logging.debug(r"Center Row calculated as: " + str(center_row))
         # if the calculated center row deviated too much
-        if (img_size[1] // 2 + max_allowed_deviation) < center_row < (img_size[1] // 2 - max_allowed_deviation):
+        if (self.Size[1] // 2 + max_allowed_deviation) < center_row < (self.Size[1] // 2 - max_allowed_deviation):
             logging.warning(r"It seems abnormal when calculate Center row, use image center now!")
-            center_row = img_size[1] // 2
+            center_row = self.Size[1] // 2
             is_abnormal = True
 
         # set different radius according to normal/abnormal situation
         if is_abnormal is False:
-            radius = (img_size[0] - left_distance - right_distance) // 2
+            radius = (self.Size[0] - left_distance - right_distance) // 2
             diameter_in_cm = radius * self.PixSpace[0] * 2
             logging.debug(str(radius) + r"pix (radius), " + str(diameter_in_cm) +
                           r"cm(diameter)<==Calculated phantom diameter")
