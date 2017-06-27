@@ -32,7 +32,7 @@ class ImageHandler(DicomHandler):
             self.Image_HU = self.RawData * self.Slop + self.Intercept
             self.Image = self.Image_HU.copy()
             # calculate first time that can show image according pre-set windowing
-            self.rescale_image((50, 100))
+            self.rescale_image((100, 00))
             # center is always in format (row, col)
             # Radius is always in format (radius in pixel, radius in cm)
             self.Center, self.Radius = self.calc_circle()
