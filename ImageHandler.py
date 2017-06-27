@@ -30,6 +30,9 @@ class ImageHandler(DicomHandler):
         try:
             # Convert to HU unit
             self.Image_HU = self.RawData * self.Slop + self.Intercept
+            self.Image = self.Image_HU.copy()
+            # calculate first time that can show image according pre-set windowing
+            self.rescale_image(self.Window)
             # center is always in format (row, col)
             # Radius is always in format (radius in pixel, radius in cm)
             self.Center, self.Radius = self.calc_circle(self.Image_HU.copy())
@@ -43,18 +46,17 @@ class ImageHandler(DicomHandler):
             return
         # set the flag to indicate initializing done
         self.isImageComplete = True
-        # calculate first time that can show image according pre-set windowing
-        self.Image = self.rescale_image(self.Image_HU, self.Window)
+
         logging.info(r"Image initialed OK.")
 
-    @staticmethod
-    def rescale_image(raw_data, window: tuple):
+    def rescale_image(self, window: tuple):
         """
         rescale the image to set the data in range (0~255)
         :param raw_data: a np array as raw image data, make sure to pass a copy!
         :param window: a tuple pass in as (window width, window center)
         :return: return a np array as rescaled image
         """
+        raw_data = self.Image_HU.copy()
         window_upper = window[1] + window[0] / 2
         window_lower = window[1] - window[0] / 2
         # make filter according to center and width
@@ -71,7 +73,7 @@ class ImageHandler(DicomHandler):
             max_hu_image = raw_data.max()
             image_rescale = raw_data
         image_rescale = image_rescale * 255 / max_hu_image  # rescale the image to fit 0~255
-        return image_rescale
+        self.Image = image_rescale
 
     def calc_circle(self, raw_data):
         """
@@ -85,7 +87,6 @@ class ImageHandler(DicomHandler):
         (center row, center col),(radius in pixel, radius in cm)
         """
         # set up some local variables
-        default_window = (100, 0)
         is_abnormal = False
         center_col = self.Size[0] // 2
         center_row = self.Size[1] // 2
@@ -97,7 +98,7 @@ class ImageHandler(DicomHandler):
         # Using PIL to find edge and convert back to np array
         # This will make calculation more accuracy
         filtered_image = np.array(
-            Image.fromarray(self.rescale_image(raw_data, default_window))
+            Image.fromarray(self.Image)
             .convert("L")
             .filter(ImageFilter.FIND_EDGES)
         )
@@ -250,5 +251,5 @@ if __name__ == '__main__':
                         format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
                         datefmt='%a, %d %b %Y %H:%M:%S')
 
-    img = ImageHandler('/Users/qianxin/Downloads/add.dcm')
+    img = ImageHandler('/Users/qianxin/Downloads/a')
     print(img.show_image())
