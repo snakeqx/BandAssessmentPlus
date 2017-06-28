@@ -1,8 +1,6 @@
-import os
 import logging
 from DirectoryHandler import DirectoryHandler
 from ImageHandler import ImageHandler
-from DicomHandler import DicomHandler
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',

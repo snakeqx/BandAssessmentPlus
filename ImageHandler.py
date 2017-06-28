@@ -46,7 +46,6 @@ class ImageHandler(DicomHandler):
             return
         # set the flag to indicate initializing done
         self.isImageComplete = True
-
         logging.info(r"Image initialed OK.")
 
     def rescale_image(self, window: tuple):
@@ -216,8 +215,8 @@ class ImageHandler(DicomHandler):
             im.save(self.FileName + self.ScanMode + image__filename, "png")
             # draw fig
             plt.plot(self.Image_Median_Filter_Result)
-            #plt.ylim((-5, 20))
-            #plt.xlim((0, 250))
+            plt.ylim((-5, 20))
+            plt.xlim((0, 250))
             # draw fig image
             plt.savefig(self.FileName + self.ScanMode + image__filename__fig)
         except Exception as e:
