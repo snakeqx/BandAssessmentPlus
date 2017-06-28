@@ -25,5 +25,6 @@ if __name__ == '__main__':
     input_directory = DirectoryHandler(r"/Users/qianxin/Downloads")
     for x in DirectoryHandler.Dicom_File_Path:
         a = ImageHandler(x)
+        a.rescale_image((1, 100))
         a.save_image()
 

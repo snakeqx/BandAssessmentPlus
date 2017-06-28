@@ -17,7 +17,7 @@ class ImageHandler(DicomHandler):
         :param filename: input dicom file name including path
         """
         self.isImageComplete = False
-        self.RescaleType = {'linear', 'logarithm'}
+        # self.RescaleType = {'linear', 'gamma'}
         try:
             # call super to init DicomHandler class first
             super(self.__class__, self).__init__(filename)
@@ -29,8 +29,8 @@ class ImageHandler(DicomHandler):
 
         try:
             # Convert to HU unit
-            self.Image_HU = self.RawData * self.Slop + self.Intercept
-            self.Image = self.Image_HU.copy()
+            self.ImageHU = self.RawData * self.Slop + self.Intercept
+            self.ImageRaw = self.ImageHU.copy()
             # calculate first time that can show image according pre-set windowing
             self.rescale_image((100, 0))
             # center is always in format (row, col)
@@ -55,7 +55,7 @@ class ImageHandler(DicomHandler):
         :param window: a tuple pass in as (window width, window center)
         :return: return a np array as rescaled image
         """
-        raw_data = self.Image_HU.copy()
+        raw_data = self.ImageHU.copy()
         window_upper = window[1] + window[0] / 2
         window_lower = window[1] - window[0] / 2
         # make filter according to center and width
@@ -65,16 +65,12 @@ class ImageHandler(DicomHandler):
         raw_data[lower_filter] = window_lower  # set lower value
         # rescale the data to 0~255
         min_hu_image = raw_data.min()
-        image_rescale = raw_data + (0 - min_hu_image)  # get rid of minus number
-        max_hu_image = image_rescale.max()
-        # if min_hu_image < 0:
-        #     max_hu_image = raw_data.max() + abs(min_hu_image)
-        #     image_rescale = raw_data + (0 - min_hu_image)  # get rid of minus number
-        # else:
-        #     max_hu_image = raw_data.max()
-        #     image_rescale = raw_data
-        image_rescale = image_rescale * 255 / max_hu_image  # rescale the image to fit 0~255
-        self.Image = image_rescale
+        max_hu_image = raw_data.max()
+        if min_hu_image == max_hu_image:
+            self.ImageRaw = (raw_data - min_hu_image) * 255
+        else:
+            # rescale the image to fit 0~255
+            self.ImageRaw = (raw_data - min_hu_image) * 255 / (max_hu_image - min_hu_image)
 
     def calc_circle(self):
         """
@@ -98,7 +94,7 @@ class ImageHandler(DicomHandler):
         # Using PIL to find edge and convert back to np array
         # This will make calculation more accuracy
         filtered_image = np.array(
-            Image.fromarray(self.Image)
+            Image.fromarray(self.ImageRaw)
             .convert("L")
             .filter(ImageFilter.FIND_EDGES)
         )
@@ -164,14 +160,14 @@ class ImageHandler(DicomHandler):
         y = radius
         d = 3 - 2 * radius
         while x < y:
-            self.Image_Integration_Result[radius] += self.Image_HU[self.Center[0] - y, self.Center[1] + x]
-            self.Image_Integration_Result[radius] += self.Image_HU[self.Center[0] + y, self.Center[1] + x]
-            self.Image_Integration_Result[radius] += self.Image_HU[self.Center[0] - y, self.Center[1] - x]
-            self.Image_Integration_Result[radius] += self.Image_HU[self.Center[0] + y, self.Center[1] - x]
-            self.Image_Integration_Result[radius] += self.Image_HU[self.Center[0] - x, self.Center[1] + y]
-            self.Image_Integration_Result[radius] += self.Image_HU[self.Center[0] - x, self.Center[1] - y]
-            self.Image_Integration_Result[radius] += self.Image_HU[self.Center[0] + x, self.Center[1] + y]
-            self.Image_Integration_Result[radius] += self.Image_HU[self.Center[0] + x, self.Center[1] - y]
+            self.Image_Integration_Result[radius] += self.ImageHU[self.Center[0] - y, self.Center[1] + x]
+            self.Image_Integration_Result[radius] += self.ImageHU[self.Center[0] + y, self.Center[1] + x]
+            self.Image_Integration_Result[radius] += self.ImageHU[self.Center[0] - y, self.Center[1] - x]
+            self.Image_Integration_Result[radius] += self.ImageHU[self.Center[0] + y, self.Center[1] - x]
+            self.Image_Integration_Result[radius] += self.ImageHU[self.Center[0] - x, self.Center[1] + y]
+            self.Image_Integration_Result[radius] += self.ImageHU[self.Center[0] - x, self.Center[1] - y]
+            self.Image_Integration_Result[radius] += self.ImageHU[self.Center[0] + x, self.Center[1] + y]
+            self.Image_Integration_Result[radius] += self.ImageHU[self.Center[0] + x, self.Center[1] - y]
             if d < 0:
                 d = d + 4 * x + 6
             else:
@@ -213,15 +209,15 @@ class ImageHandler(DicomHandler):
         # set up the output file name
         image__filename = self.ScanMode + ".jpeg"
         image__filename__fig = self.ScanMode + "_fig.jpeg"
-        im = Image.fromarray(self.Image).convert("L")
+        im = Image.fromarray(self.ImageRaw).convert("L")
         # save image
         try:
             # save image
             im.save(self.FileName + self.ScanMode + image__filename, "png")
             # draw fig
             plt.plot(self.Image_Median_Filter_Result)
-            plt.ylim((-5, 20))
-            plt.xlim((0, 250))
+            #plt.ylim((-5, 20))
+            #plt.xlim((0, 250))
             # draw fig image
             plt.savefig(self.FileName + self.ScanMode + image__filename__fig)
         except Exception as e:
@@ -234,8 +230,7 @@ class ImageHandler(DicomHandler):
         if not self.isImageComplete:
             logging.warning(r"Image initialed incomplete. Procedure quited.")
             return
-        im = Image.fromarray(self.Image).convert("L")
-        return im
+        return Image.fromarray(self.ImageRaw).convert("L")
 
     def show_integration_result(self):
         if not self.isImageComplete:
@@ -252,4 +247,5 @@ if __name__ == '__main__':
                         datefmt='%a, %d %b %Y %H:%M:%S')
 
     img = ImageHandler('/Users/qianxin/Downloads/a')
+    img.rescale_image((2, 100))
     img.save_image()
