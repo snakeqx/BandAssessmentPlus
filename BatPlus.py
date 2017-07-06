@@ -14,17 +14,14 @@ console.setFormatter(formatter)
 logging.getLogger('').addHandler(console)
 
 
-class GetDicom:
+class SaveDicom:
     def __init__(self, path):
         logging.debug("Now gonna get dicoms to store into database")
         self.InputDirectory = DirectoryHandler(path)
         self.Database = DatabaseHandler()
         for _dicom in self.InputDirectory.Dicom_File_Path:
             _image = ImageHandler(_dicom)
-            self.Database.insert_data(_image)
+            self.Database.insert_dicom(_image)
 
 if __name__ == '__main__':
-    GetDicom(r"/Users/qianxin/Downloads")
-
-
-
+    SaveDicom(r"/Users/qianxin/Downloads")

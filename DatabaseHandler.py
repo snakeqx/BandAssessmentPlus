@@ -37,7 +37,7 @@ class DatabaseHandler(DbModel):
         Base.metadata.create_all(self.Engine)
         self.StoredUid = self.CurrentSession.query(DbModel.uid).all()
 
-    def insert_data(self, image: ImageHandler):
+    def insert_dicom(self, image: ImageHandler):
         # judge if the image has already been in database
         # pay attention that the return list is a tuple ('uid',)
         if (image.Uid,) in self.StoredUid:
@@ -69,6 +69,4 @@ class DatabaseHandler(DbModel):
 
 
 if __name__ == '__main__':
-    a = DatabaseHandler()
-
-
+    print("Do not use this individually")
