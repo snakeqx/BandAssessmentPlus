@@ -17,6 +17,7 @@ class DicomHandler:
             self.SoftwareVersion = self.Data[0x0018, 0x1020].value
 
             # Image related
+            self.PatientName = self.Data[0x0010, 0x0010].value
             self.Slop = self.Data[0x0028, 0x1053].value
             self.Intercept = self.Data[0x0028, 0x1052].value
             self.Size = (self.Data[0x0028, 0x0010].value,   # row

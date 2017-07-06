@@ -1,6 +1,5 @@
-import logging
+from DatabaseHandler import *
 from DirectoryHandler import DirectoryHandler
-from ImageHandler import ImageHandler
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
@@ -15,14 +14,17 @@ console.setFormatter(formatter)
 logging.getLogger('').addHandler(console)
 
 
-def main():
-    pass
-
+class GetDicom:
+    def __init__(self, path):
+        logging.debug("Now gonna get dicoms to store into database")
+        self.InputDirectory = DirectoryHandler(path)
+        self.Database = DatabaseHandler()
+        for _dicom in self.InputDirectory.Dicom_File_Path:
+            _image = ImageHandler(_dicom)
+            self.Database.insert_data(_image)
 
 if __name__ == '__main__':
-    input_directory = DirectoryHandler(r"/Users/qianxin/Downloads")
-    for x in DirectoryHandler.Dicom_File_Path:
-        a = ImageHandler(x)
-        a.rescale_image((1, 100))
-        a.save_image()
+    GetDicom(r"/Users/qianxin/Downloads")
+
+
 
