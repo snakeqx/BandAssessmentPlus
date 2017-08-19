@@ -43,12 +43,13 @@ class DicomHandler:
             self.Series = self.Data[0x0020, 0x0011].value
             self.TotalCollimation = self.Data[0x0018, 0x9307].value
             self.SliceThickness = self.Data[0x0018, 0x0050].value
+            self.TotalSlice = int(self.TotalCollimation // self.SliceThickness)
             self.DateTime = self.Data[0x0008, 0x002a].value
-            self.ScanMode = r"{0}kV_{1}mA_{2}_{3}P{4}.{5}". \
+            self.ScanMode = r"{0}kV_{1}mA_{2}_{3}x{4}.{5}". \
                 format(str(self.KVP),
                        str(self.Current),
                        str(self.Kernel),
-                       str(self.TotalCollimation),
+                       str(self.TotalSlice),
                        str(self.SliceThickness),
                        str(self.Instance))
 
@@ -59,7 +60,7 @@ class DicomHandler:
             return
 
         self.isComplete = True
-        logging.info(r"Dicom initialed OK.")
+        logging.info(r"Dicom " + str(self.FileName) + " initialed OK.")
 
 
 if __name__ == '__main__':

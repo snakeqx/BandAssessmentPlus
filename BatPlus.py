@@ -1,5 +1,7 @@
-from DatabaseHandler import *
-from DirectoryHandler import DirectoryHandler
+from bat.DatabaseHandler import SQL3Handler
+from bat.DirectoryHandler import DirectoryHandler
+from bat.ImageHandler import ImageHandler
+import logging
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
@@ -14,14 +16,12 @@ console.setFormatter(formatter)
 logging.getLogger('').addHandler(console)
 
 
-class SaveDicom:
-    def __init__(self, path):
-        logging.debug("Now gonna get dicoms to store into database")
-        self.InputDirectory = DirectoryHandler(path)
-        self.Database = DatabaseHandler()
-        for _dicom in self.InputDirectory.Dicom_File_Path:
-            _image = ImageHandler(_dicom)
-            self.Database.insert_dicom(_image)
-
 if __name__ == '__main__':
-    SaveDicom(r"/Users/qianxin/Downloads")
+    files = DirectoryHandler(r'/Users/qianxin/Downloads/108054fail')
+    for _file in files.Dicom_File_Path:
+        _image = ImageHandler(_file)
+        if _image.isImageComplete:
+            _image.save_image()
+            SQL3Handler(_image).insert_data()
+
+

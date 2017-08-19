@@ -1,9 +1,11 @@
+import logging
+
+import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 from PIL import ImageFilter
-import matplotlib.pyplot as plt
-import logging
-from DicomHandler import DicomHandler
+
+from bat.DicomHandler import DicomHandler
 
 
 class ImageHandler(DicomHandler):
@@ -180,45 +182,30 @@ class ImageHandler(DicomHandler):
             self.bresenham(index)
             self.Image_Integration_Result[index] /= (index * 2 * 3.14)
         # calculate data by using Median
-        factor = 5
-        # the 1st and 2nd data = factor * md3() - md5()
-        self.Image_Median_Filter_Result[0] = \
-            np.median(self.Image_Integration_Result[:3]) * factor - \
-            np.median(self.Image_Integration_Result[:5])
-        self.Image_Median_Filter_Result[1] = \
-            np.median(self.Image_Integration_Result[:3]) * factor - \
-            np.median(self.Image_Integration_Result[:5])
-
-        # the last and 2nd last data = factor * md3() - md5()
-        self.Image_Median_Filter_Result[-1] = \
-            np.median(self.Image_Integration_Result[-3:]) * factor - \
-            np.median(self.Image_Integration_Result[-5:])
-        self.Image_Median_Filter_Result[-2] = \
-            np.median(self.Image_Integration_Result[-3:]) * factor - \
-            np.median(self.Image_Integration_Result[-5:])
-
-        # for the rest of the data, do the median filter with width=5
-        for index in range(3, len(self.Image_Integration_Result) - 2):
-            self.Image_Median_Filter_Result[index] = np.median(self.Image_Integration_Result[index - 3:index + 3])
+        # for the rest of the data, do the median filter with width
+        _width = 8
+        for index in range(len(self.Image_Integration_Result) - _width):
+            self.Image_Median_Filter_Result[index] = np.median(
+                self.Image_Integration_Result[index:index + _width])
 
     def save_image(self):
         if not self.isImageComplete:
             logging.warning(r"Image initialed incomplete. Procedure quited.")
             return
         # set up the output file name
-        image__filename = self.ScanMode + ".jpeg"
-        image__filename__fig = self.ScanMode + "_fig.jpeg"
+        image__filename = ".jpeg"
+        image__filename__fig = "_fig.jpeg"
         im = Image.fromarray(self.ImageRaw).convert("L")
         # save image
         try:
             # save image
-            im.save(self.FileName + self.ScanMode + image__filename, "png")
+            im.save(self.FileName + "_" + self.ScanMode + image__filename, "png")
             # draw fig
             plt.plot(self.Image_Median_Filter_Result)
             plt.ylim((-5, 20))
             plt.xlim((0, 250))
             # draw fig image
-            plt.savefig(self.FileName + self.ScanMode + image__filename__fig)
+            plt.savefig(self.FileName + "_" + self.ScanMode + image__filename__fig)
         except Exception as e:
             logging.error(str(e))
             return
