@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 from PIL import ImageFilter
+from PIL import ImageDraw
 
 from bat.DicomHandler import DicomHandler
 
@@ -34,10 +35,11 @@ class ImageHandler(DicomHandler):
             self.ImageHU = self.RawData * self.Slop + self.Intercept
             self.ImageRaw = self.ImageHU.copy()
             # calculate first time that can show image according pre-set windowing
-            self.rescale_image((100, 0))
+            self.rescale_image((50, 0))
             # center is always in format (row, col)
             # Radius is always in format (radius in pixel, radius in cm)
             self.Center, self.Radius = self.calc_circle()
+            self.Center=(256,256)
             # define circular integration result
             self.Image_Integration_Result = np.zeros(self.Radius[0])
             self.Image_Median_Filter_Result = np.zeros(self.Radius[0])
@@ -152,35 +154,170 @@ class ImageHandler(DicomHandler):
 
         return (center_row, center_col), (radius, diameter_in_cm)
 
-    def bresenham(self, radius):
+    def bresenham(self, center, radius):
         """
         Draw circle by bresenham method. And calculate the sum.
+        :param center: a tuple to indecate center as (row, col)
         :param radius: set the radius of the calculated circle
+        :return: return a tuple as (integration_result, count)
         """
         x = 0
         y = radius
         d = 3 - 2 * radius
+        count = 0
+        integration_result=0.0
         while x < y:
-            self.Image_Integration_Result[radius] += self.ImageHU[self.Center[0] - y, self.Center[1] + x]
-            self.Image_Integration_Result[radius] += self.ImageHU[self.Center[0] + y, self.Center[1] + x]
-            self.Image_Integration_Result[radius] += self.ImageHU[self.Center[0] - y, self.Center[1] - x]
-            self.Image_Integration_Result[radius] += self.ImageHU[self.Center[0] + y, self.Center[1] - x]
-            self.Image_Integration_Result[radius] += self.ImageHU[self.Center[0] - x, self.Center[1] + y]
-            self.Image_Integration_Result[radius] += self.ImageHU[self.Center[0] - x, self.Center[1] - y]
-            self.Image_Integration_Result[radius] += self.ImageHU[self.Center[0] + x, self.Center[1] + y]
-            self.Image_Integration_Result[radius] += self.ImageHU[self.Center[0] + x, self.Center[1] - y]
+            integration_result += self.ImageHU[center[0] - y, center[1] + x]
+            integration_result += self.ImageHU[center[0] + y, center[1] + x]
+            integration_result += self.ImageHU[center[0] - y, center[1] - x]
+            integration_result += self.ImageHU[center[0] + y, center[1] - x]
+            integration_result += self.ImageHU[center[0] - x, center[1] + y]
+            integration_result += self.ImageHU[center[0] - x, center[1] - y]
+            integration_result += self.ImageHU[center[0] + x, center[1] + y]
+            integration_result += self.ImageHU[center[0] + x, center[1] - y]
+            count += 8
             if d < 0:
                 d = d + 4 * x + 6
             else:
                 d = d + 4 * (x - y) + 10
                 y -= 1
             x += 1
-
+        return (integration_result, count)
+            
+    def roi_measure(self, center, radius):
+        result_hu = 0
+        result_count = 0
+        for index in range(1, radius):
+            _result = self.bresenham(center, index)
+            result_hu += _result[0]
+            result_count += _result[1]
+        return(result_hu/result_count)
+        
+    def find_center_roi_min(self, radius, deviation):
+        # initialize local variables
+        min=self.roi_measure(self.Center, 10)
+        min_row = self.Center[0]
+        min_col = self.Center[1]
+        # start to find the min HU value
+        for index_row in range(self.Center[0]-deviation, self.Center[0]+deviation):
+            for index_col in range(self.Center[1]-deviation, self.Center[1]+deviation):
+                result=self.roi_measure((index_row, index_col),radius)
+                if result < min:
+                    min = result
+                    min_row = index_row
+                    min_col = index_col
+        # pack the min value position in image
+        min_position=(min_row, min_col)
+        return (min, min_position)
+                
+    def circular_bresenham(self, center, radius, radius_inner):
+        x = 0
+        y = radius
+        d = 3 - 2 * radius
+        integration_result = []
+        integration_pos = []
+        while x < y:
+            integration_result.append(self.roi_measure(([center[0] - y, center[1] + x]), radius_inner))
+            integration_result.append(self.roi_measure(([center[0] + y, center[1] + x]), radius_inner))
+            integration_result.append(self.roi_measure(([center[0] - y, center[1] - x]), radius_inner))
+            integration_result.append(self.roi_measure(([center[0] + y, center[1] - x]), radius_inner))
+            integration_result.append(self.roi_measure(([center[0] - x, center[1] + y]), radius_inner))
+            integration_result.append(self.roi_measure(([center[0] - x, center[1] - y]), radius_inner))
+            integration_result.append(self.roi_measure(([center[0] + x, center[1] + y]), radius_inner))
+            integration_result.append(self.roi_measure(([center[0] + x, center[1] - y]), radius_inner))
+            # record the position to draw afterward
+            integration_pos.append(([center[0] - y, center[1] + x]))
+            integration_pos.append(([center[0] + y, center[1] + x]))
+            integration_pos.append(([center[0] - y, center[1] - x]))
+            integration_pos.append(([center[0] + y, center[1] - x]))
+            integration_pos.append(([center[0] - x, center[1] + y]))
+            integration_pos.append(([center[0] - x, center[1] - y]))
+            integration_pos.append(([center[0] + x, center[1] + y]))
+            integration_pos.append(([center[0] + x, center[1] - y]))
+            if d < 0:
+                d = d + 4 * x + 6
+            else:
+                d = d + 4 * (x - y) + 10
+                y -= 1
+            x += 1
+        return (integration_result, integration_pos)
+        
+    def evaluate_iq (self, diameter_in_mm, deviation_in_mm):
+        if not self.isImageComplete:
+                logging.warning(r"Image initialed incomplete. Procedure quited.")
+                return
+                
+        # convert diamter_in_mm into radius in pixel
+        radius = int((diameter_in_mm / self.PixSpace[0]) / 2)
+        # convert deviation in mm into deviation in pixel
+        deviation = int(deviation_in_mm / self.PixSpace[0])
+        
+        (min_hu, min_pos) = self.find_center_roi_min(radius, deviation)
+        (result, pos) = self.circular_bresenham(min_pos, radius*2, radius)
+        max_hu = max(result)
+        for i in range(0,len(result)):
+            result[i] = result[i]-min_hu
+            
+        max_deviation = max(result)
+        max_dev_position = pos[result.index(max_deviation)]
+        
+        # prepare to save the evaluation result
+        image__filename = "_IqEval.jpeg"
+        im = Image.fromarray(self.ImageRaw).convert("L")
+        pixelMap = im.load()
+        draw = ImageDraw.Draw(im)
+        # draw the min center positoin
+        pixelMap[min_pos[1], min_pos[0]]=0
+        pixelMap[min_pos[1]+1, min_pos[0]]=0
+        pixelMap[min_pos[1]-1, min_pos[0]]=0
+        pixelMap[min_pos[1], min_pos[0]+1]=0
+        pixelMap[min_pos[1], min_pos[0]-1]=0
+        # draw the max deviation center position
+        pixelMap[max_dev_position[1], max_dev_position[0]]=0
+        pixelMap[max_dev_position[1]+1, max_dev_position[0]]=0
+        pixelMap[max_dev_position[1]-1, max_dev_position[0]]=0
+        pixelMap[max_dev_position[1], max_dev_position[0]+1]=0
+        pixelMap[max_dev_position[1], max_dev_position[0]-1]=0
+        # draw the Image Center Position
+        pixelMap[self.Center[1], self.Center[0]]=0
+        pixelMap[self.Center[1]+1, self.Center[0]]=0
+        pixelMap[self.Center[1]-1, self.Center[0]]=0
+        pixelMap[self.Center[1], self.Center[0]+1]=0
+        pixelMap[self.Center[1], self.Center[0]-1]=0
+        # Draw circle
+        text_pos = deviation
+        draw.ellipse((min_pos[1]-radius, min_pos[0]-radius, min_pos[1]+radius, min_pos[0]+radius))
+        draw.text((min_pos[1], min_pos[0]+text_pos), str("Middle Min HU:"+str(min_hu)))
+        draw.ellipse((max_dev_position[1]-radius, max_dev_position[0]-radius, max_dev_position[1]+radius, max_dev_position[0]+radius))
+        draw.text((max_dev_position[1], max_dev_position[0]+text_pos), str("Around Max HU:"+str(max_hu)))
+        draw.text((200, 100), str("Max HU Deviation:"+str(max_deviation)))
+        im.save(self.FileName + "_" + self.ScanMode + image__filename, "png")
+        
+        # Prepare to draw the image evaluation fig plot
+        image__filename__fig = "_IqEval_fig.jpeg"
+        plt.plot(sorted(result))
+        limit_h = []
+        limit_l = []
+        limit_h1 = []
+        limit_l1 = []
+        for i in result:
+            limit_h.append(3)
+            limit_h1.append(3.5)
+            limit_l.append(-3)
+            limit_l1.append(-3.5)
+        plt.plot(limit_h)
+        plt.plot(limit_l)
+        plt.plot(limit_h1)
+        plt.plot(limit_l1)
+        plt.savefig(self.FileName + "_" + self.ScanMode + image__filename__fig)
+        plt.close()
+        
+                
     def integration(self):
         # calculate circular integration for each radius
         for index in range(1, len(self.Image_Integration_Result)):
-            self.bresenham(index)
-            self.Image_Integration_Result[index] /= (index * 2 * 3.14)
+            result = self.bresenham(self.Center, index)
+            self.Image_Integration_Result[index] = result[0]/result[1]
         # calculate data by using Median
         # for the rest of the data, do the median filter with width
         _width = 8
@@ -206,6 +343,7 @@ class ImageHandler(DicomHandler):
             plt.xlim((0, 250))
             # draw fig image
             plt.savefig(self.FileName + "_" + self.ScanMode + image__filename__fig)
+            plt.close()
         except Exception as e:
             logging.error(str(e))
             return
@@ -232,6 +370,6 @@ if __name__ == '__main__':
                         format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
                         datefmt='%a, %d %b %Y %H:%M:%S')
 
-    img = ImageHandler('/Users/qianxin/Downloads/a')
+    img = ImageHandler('a.dcm')
     img.rescale_image((2, 100))
     img.save_image()

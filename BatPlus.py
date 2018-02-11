@@ -17,11 +17,12 @@ logging.getLogger('').addHandler(console)
 
 
 if __name__ == '__main__':
-    files = DirectoryHandler(r'/Users/qianxin/Downloads/108054fail')
+    files = DirectoryHandler(r'./test')
     for _file in files.Dicom_File_Path:
         _image = ImageHandler(_file)
         if _image.isImageComplete:
             _image.save_image()
+            _image.evaluate_iq(10,2)
             SQL3Handler(_image).insert_data()
 
 

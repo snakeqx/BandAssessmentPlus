@@ -59,6 +59,7 @@ class SQL3Handler:
         sql_cursor = con.cursor()
         sql_string = r"insert into BandAssessments values (?,?,?,?,?,?,?,?,?,?,?,?);"
         try:
+            logging.debug(str(self.DicomImage.Uid))
             sql_cursor.execute(sql_string,
                                (self.DicomImage.Uid,
                                 self.DicomImage.Modality,
