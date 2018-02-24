@@ -42,14 +42,16 @@ class DicomHandler:
             self.Kernel = self.Data[0x0018, 0x1210].value
             self.Series = self.Data[0x0020, 0x0011].value
             self.TotalCollimation = self.Data[0x0018, 0x9307].value
+            self.OriginalCollimation = self.Data[0x0029, 0x102c].value
             self.SliceThickness = self.Data[0x0018, 0x0050].value
             self.TotalSlice = int(self.TotalCollimation // self.SliceThickness)
             self.DateTime = self.Data[0x0008, 0x002a].value
-            self.ScanMode = r"{0}kV_{1}mA_{2}_{3}x{4}.{5}". \
+            self.ScanMode = r"{0}kV_{1}mA_{2}_{3}({4})x{5}.{6}". \
                 format(str(self.KVP),
                        str(self.Current),
                        str(self.Kernel),
                        str(self.TotalSlice),
+                       str(self.OriginalCollimation),
                        str(self.SliceThickness),
                        str(self.Instance))
 

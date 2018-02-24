@@ -2,6 +2,7 @@
 import os
 import dicom
 import logging
+import sys
 
 
 class DirectoryHandler:
