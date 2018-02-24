@@ -1,8 +1,9 @@
+import logging
+import sys
+
 from bat.DatabaseHandler import SQL3Handler
 from bat.DirectoryHandler import DirectoryHandler
 from bat.ImageHandler import ImageHandler
-import logging
-import sys
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
@@ -33,8 +34,11 @@ def main():
         count += 1
         if _image.isImageComplete:
             _image.save_image()
-            if _image.Kernel == "Hr40f" and (_image.OriginalCollimation == 16 or _image.OriginalCollimation == 1 or _image.OriginalCollimation == 32):
-                _image.evaluate_iq(100,2)
+            if not _image.Kernel != "Hr40f" and \
+                    (_image.OriginalCollimation == 16 or
+                     _image.OriginalCollimation == 1 or
+                     _image.OriginalCollimation == 32):
+                _image.evaluate_iq(100, 2)
             SQL3Handler(_image).insert_data()
     print("Program exits sucesfully.")
 

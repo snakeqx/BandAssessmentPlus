@@ -1,11 +1,11 @@
 import logging
+import math
 
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
-from PIL import ImageFilter
 from PIL import ImageDraw
-import math
+from PIL import ImageFilter
 
 from bat.DicomHandler import DicomHandler
 
@@ -17,7 +17,7 @@ class ImageHandler(DicomHandler):
     to deal with image related calculation.
     """
 
-    def __init__(self, filename, window=(50,0)):
+    def __init__(self, filename, window=(50, 0)):
         """
         Initialization function
         :param filename: input dicom file name including path
@@ -280,8 +280,8 @@ class ImageHandler(DicomHandler):
             return
 
         # convert diamter_in_mm into radius in pixel
-        #radius = int((diameter_in_mm / self.PixSpace[0]) / 2)
-        radius = int((diameter_in_mm/3.14159265)**0.5 / self.PixSpace[0])
+        # radius = int((diameter_in_mm / self.PixSpace[0]) / 2)
+        radius = int((diameter_in_mm / 3.14159265) ** 0.5 / self.PixSpace[0])
         # convert deviation in mm into deviation in pixel
         deviation = int(deviation_in_mm / self.PixSpace[0])
 
@@ -293,39 +293,38 @@ class ImageHandler(DicomHandler):
 
         max_deviation = max(result)
         max_dev_position = pos[result.index(max_deviation)]
-        
+
         # experiment of find theta
         theta = []
         for p in pos:
-            y = min_pos[0]-p[0]
-            x = p[1]-min_pos[1]
+            y = min_pos[0] - p[0]
+            x = p[1] - min_pos[1]
             if x == 0:
-                if y>0:
+                if y > 0:
                     theta.append(90)
                 else:
                     theta.append(270)
-            elif y ==0:
-                if x>0:
+            elif y == 0:
+                if x > 0:
                     theta.append(0)
-                if x<0:
+                if x < 0:
                     theta.append(180)
             else:
-                if x>0 and y>0:
-                    theta.append(int(math.degrees(math.atan(y/x))))
-                elif x<0 and y>0:
-                    theta.append(int((math.degrees(math.atan(y/x))*-1)+90))
-                elif x<0 and y<0:
-                    theta.append(int(math.degrees(math.atan(y/x))+180))
+                if not (not (x > 0) or not (y > 0)):
+                    theta.append(int(math.degrees(math.atan(y / x))))
+                elif x < 0 < y:
+                    theta.append(int((math.degrees(math.atan(y / x)) * -1) + 90))
+                elif x < 0 and y < 0:
+                    theta.append(int(math.degrees(math.atan(y / x)) + 180))
                 else:
-                    theta.append(int((math.degrees(math.atan(y/x))*-1)+270))
+                    theta.append(int((math.degrees(math.atan(y / x)) * -1) + 270))
         union_result = []
-        for i in range(0,len(result)):
+        for i in range(0, len(result)):
             union_result.append((theta[i], result[i]))
-        sorted_result_tuple=sorted(union_result,key=lambda t:t[0])
+        sorted_result_tuple = sorted(union_result, key=lambda t: t[0])
         sorted_result = []
         for r in sorted_result_tuple:
             sorted_result.append(r[1])
-        
 
         # Prepare to draw the image evaluation fig plot
         image__filename__fig = "_IqEval_fig.jpeg"
@@ -340,13 +339,13 @@ class ImageHandler(DicomHandler):
         error_count = 0
         for r in result:
             if r >= warning_thresh_hold:
-                warning_count += 1 
+                warning_count += 1
             if r >= error_thresh_hold:
-                error_count += 1 
+                error_count += 1
             limit_h.append(warning_thresh_hold)
             limit_h1.append(error_thresh_hold)
-            limit_l.append(warning_thresh_hold*-1)
-            limit_l1.append(error_thresh_hold*-1)
+            limit_l.append(warning_thresh_hold * -1)
+            limit_l1.append(error_thresh_hold * -1)
         plt.plot(limit_h)
         plt.plot(limit_l)
         plt.plot(limit_h1)
@@ -354,7 +353,7 @@ class ImageHandler(DicomHandler):
         plt.plot(sorted_result)
         plt.savefig(self.FileName + "_" + self.ScanMode + image__filename__fig)
         plt.close()
-        
+
         # prepare to save the evaluation result
         image__filename = "_IqEval.jpeg"
         im = Image.fromarray(self.ImageRaw).convert("L")
@@ -386,11 +385,9 @@ class ImageHandler(DicomHandler):
                       max_dev_position[0] + radius))
         draw.text((max_dev_position[1], max_dev_position[0] + text_pos), str("Around Max HU:" + str(max_hu)))
         draw.text((200, 100), str("Max HU Deviation:" + str(max_deviation)))
-        draw.text((200, 110), str("error rate:" + str(error_count/result_count*100)+"%"))
-        draw.text((200, 120), str("warning rate:" + str(warning_count/result_count*100)+"%"))
+        draw.text((200, 110), str("error rate:" + str(error_count / result_count * 100) + "%"))
+        draw.text((200, 120), str("warning rate:" + str(warning_count / result_count * 100) + "%"))
         im.save(self.FileName + "_" + self.ScanMode + image__filename, "png")
-
-
 
     def integration(self):
         """

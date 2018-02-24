@@ -1,8 +1,8 @@
 #!coding=utf8
-import os
-import dicom
 import logging
-import sys
+import os
+
+import dicom
 
 
 class DirectoryHandler:
